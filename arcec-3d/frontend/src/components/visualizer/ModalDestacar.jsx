@@ -1,24 +1,23 @@
 import { useState, useEffect } from 'react'
 
-// Modal fiel al prototipo (página 5): nombre experimento + expresión + fecha
-const ModalDestacar = ({ abierto, onCerrar, onConfirmar, previewImg, expresionSugerida, cargando }) => {
+const ModalDestacar = ({ abierto, onCerrar, onConfirmar, previewImg, expresionesDisponibles, cargando }) => {
   const [nombreExperimento, setNombreExperimento] = useState('')
-  const [expresion, setExpresion]                 = useState('')
-  const [fecha, setFecha]                         = useState('')
+  const [expresionElegida, setExpresionElegida] = useState('')
+  const [fecha, setFecha] = useState('')
 
   useEffect(() => {
     if (abierto) {
-      setExpresion(expresionSugerida || '')
+      setExpresionElegida(expresionesDisponibles?.[0] || '')
       setFecha(new Date().toISOString().slice(0, 10))
       setNombreExperimento('')
     }
-  }, [abierto, expresionSugerida])
+  }, [abierto, expresionesDisponibles])
 
   if (!abierto) return null
 
   const handleConfirmar = () => {
-    if (!nombreExperimento.trim() || !expresion.trim()) return
-    onConfirmar({ nombre_experimento: nombreExperimento, expresion_algebraica: expresion })
+    if (!nombreExperimento.trim() || !expresionElegida) return
+    onConfirmar({ nombre_experimento: nombreExperimento, expresion_algebraica: expresionElegida })
   }
 
   return (
@@ -37,53 +36,47 @@ const ModalDestacar = ({ abierto, onCerrar, onConfirmar, previewImg, expresionSu
             <div>
               <label className="block text-sm text-gray-700 mb-1.5">Nombre del experimento</label>
               <input
-                type="text"
-                value={nombreExperimento}
+                type="text" value={nombreExperimento}
                 onChange={(e) => setNombreExperimento(e.target.value)}
-                placeholder="Nombre"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-rose-50/40
-                           focus:outline-none focus:border-gray-500"
+                placeholder="Nombre" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-rose-50/40 focus:outline-none focus:border-gray-500"
               />
             </div>
 
-            <div>
-              <label className="block text-sm text-gray-700 mb-1.5">Expresion algebraica</label>
-              <input
-                type="text"
-                value={expresion}
-                onChange={(e) => setExpresion(e.target.value)}
-                placeholder="Expresión"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-rose-50/40
-                           focus:outline-none focus:border-gray-500 font-mono"
-              />
-            </div>
+            {expresionesDisponibles && expresionesDisponibles.length > 1 ? (
+              <div>
+                <label className="block text-sm text-gray-700 mb-1.5">¿Cuál expresión quieres guardar?</label>
+                <select value={expresionElegida} onChange={(e) => setExpresionElegida(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-gray-500 font-mono">
+                  {expresionesDisponibles.map((expr, i) => (
+                    <option key={i} value={expr}>{expr.length > 50 ? expr.slice(0, 50) + '...' : expr}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">Graficaste varias expresiones a la vez; el historial guarda una por función destacada.</p>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm text-gray-700 mb-1.5">Expresión algebraica</label>
+                <p className="text-sm bg-gray-50 rounded-lg p-2.5 font-mono break-all">{expresionElegida}</p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm text-gray-700 mb-1.5">Fecha</label>
-              <input
-                type="date"
-                value={fecha}
-                readOnly
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-rose-50/40 text-gray-500"
-              />
+              <input type="date" value={fecha} readOnly
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm bg-rose-50/40 text-gray-500" />
             </div>
           </div>
         </div>
 
         <div className="flex gap-4 mt-8">
-          <button
-            onClick={handleConfirmar}
-            disabled={cargando || !nombreExperimento.trim()}
+          <button onClick={handleConfirmar} disabled={cargando || !nombreExperimento.trim()}
             className="flex-1 py-3 rounded-xl text-white font-bold text-sm transition-opacity disabled:opacity-40 hover:opacity-90"
-            style={{ backgroundColor: '#7a9bbf' }}
-          >
+            style={{ backgroundColor: '#7a9bbf' }}>
             {cargando ? 'Guardando...' : 'Confirmar'}
           </button>
-          <button
-            onClick={onCerrar}
+          <button onClick={onCerrar}
             className="flex-1 py-3 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#e08a8a' }}
-          >
+            style={{ backgroundColor: '#e08a8a' }}>
             Cancelar
           </button>
         </div>

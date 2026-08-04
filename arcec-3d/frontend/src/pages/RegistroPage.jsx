@@ -27,14 +27,10 @@ const RegistroPage = () => {
       <aside className="w-36 flex-shrink-0 flex flex-col items-center pt-6 gap-4"
              style={{ backgroundColor: '#c8d8b0' }}>
         <div className="flex flex-col items-center">
-          <div className="text-xs font-bold text-teal-700 leading-tight text-center">cenidet</div>
-          <div className="text-[9px] text-gray-600 text-center leading-tight">
-            Centro Nacional de Investigación<br/>y Desarrollo Tecnológico
-          </div>
-        </div>
-        <div className="w-20 border-t border-gray-400/50"/>
-        <div className="flex flex-col items-center">
-          <div className="text-xs font-bold text-teal-800 leading-tight text-center">UTEZ</div>
+         {/* Logo + nombre CENIDET */}
+          <img src="/logo-cenidet.png" alt="Logo CENIDET" className="w-18 h-18 object-contain mb-1" />
+        {/* Logo + nombre UTEZ */}
+          <img src="/logo-utez.png" alt="Logo UTEZ" className="w-18 h-18 object-contain mb-1" />
         </div>
       </aside>
 

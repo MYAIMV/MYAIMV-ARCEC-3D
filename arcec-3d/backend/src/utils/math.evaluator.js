@@ -1,7 +1,6 @@
 // ============================================================
 // math.evaluator.js
-// Parsea expresiones algebraicas anidadas (formato Eddie o Dummy)
-// y genera la malla (X, Y, Z) para el visualizador 3D.
+// Parsea expresiones algebraicas y genera mallas 3D.
 // ============================================================
 
 const PENALTY = 1e9
@@ -72,28 +71,29 @@ export const parsearExpresion = (expresion) => {
 const protegida = (valor) => (Number.isFinite(valor) ? valor : PENALTY)
 
 export const CATALOGO_FUNCIONES = {
-  // Catálogo Eddie
-  add:    (a, b) => a + b,
-  sub:    (a, b) => a - b,
-  mul:    (a, b) => a * b,
-  sin:    (a) => Math.sin(a),
-  cos:    (a) => Math.cos(a),
-  tanh:   (a) => Math.tanh(a),
+  add: (a, b) => a + b,
+  sub: (a, b) => a - b,
+  mul: (a, b) => a * b,
+  sin: (a) => Math.sin(a),
+  cos: (a) => Math.cos(a),
+  tanh: (a) => Math.tanh(a),
   square: (a) => a * a,
-  cube:   (a) => a * a * a,
-  p_log:  (a) => { const v = Math.abs(a); return v < 1e-9 ? PENALTY : Math.log(v) },
+  cube: (a) => a * a * a,
+  p_log: (a) => { const v = Math.abs(a); return v < 1e-9 ? PENALTY : Math.log(v) },
   p_sqrt: (a) => Math.sqrt(Math.abs(a)),
-  p_exp:  (a) => protegida(Math.exp(Math.min(a, 50))),
-
-  // Catálogo Dummy
-  tan:     (a) => Math.tan(a),
-  acos:    (a) => Math.acos(Math.max(-1, Math.min(1, a))),
-  divide:  (a, b) => (Math.abs(b) < 1e-9 ? PENALTY : a / b),
-  norm:    (a) => Math.abs(a),
-  csc:     (a) => { const s = Math.sin(a); return Math.abs(s) < 1e-9 ? PENALTY : 1 / s },
-  csch:    (a) => { const s = Math.sinh(a); return Math.abs(s) < 1e-9 ? PENALTY : 1 / s },
+  p_exp: (a) => protegida(Math.exp(Math.min(a, 50))),
+  tan: (a) => Math.tan(a),
+  acos: (a) => Math.acos(Math.max(-1, Math.min(1, a))),
+  divide: (a, b) => (Math.abs(b) < 1e-9 ? PENALTY : a / b),
+  norm: (a) => Math.abs(a),
+  csc: (a) => { const s = Math.sin(a); return Math.abs(s) < 1e-9 ? PENALTY : 1 / s },
+  csch: (a) => { const s = Math.sinh(a); return Math.abs(s) < 1e-9 ? PENALTY : 1 / s },
   minimum: (a, b) => Math.min(a, b),
-  sqr:     (a) => a * a
+  sqr: (a) => a * a,
+  log: (a) => Math.log(a),
+  exp: (a) => Math.exp(a),
+  sqrt: (a) => Math.sqrt(a),
+  div: (a, b) => a / b,
 }
 
 const evaluarNodo = (nodo, variables) => {
@@ -136,15 +136,31 @@ export const listarVariables = (expresion) => {
   return [...variables]
 }
 
+// Indica si un AST representa una expresión matemática genuina y graficable
+// (debe contener al menos una FUNCIÓN en algún punto del árbol; una variable o
+// número sueltos no cuentan, porque eso normalmente es un identificador o dato
+// suelto — como "C1" en una columna de folio — no una fórmula a evaluar).
+export const esExpresionNoTrivial = (ast) => {
+  const contieneLlamada = (nodo) => {
+    if (nodo.tipo === 'llamada') return true
+    if (nodo.args) return nodo.args.some(contieneLlamada)
+    return false
+  }
+  return contieneLlamada(ast)
+}
+
 export const generarSuperficie = (
-  expresion, varX, varY, variablesFijas = {}, rango = [-1.5, 1.5], resolucion = 30
+  expresion, varX, varY, variablesFijas = {},
+  rangoX = [-1.5, 1.5], rangoY = [-1.5, 1.5], resolucion = 30
 ) => {
   const ast = parsearExpresion(expresion)
-  const [min, max] = rango
-  const paso = (max - min) / (resolucion - 1)
+  const [minX, maxX] = rangoX
+  const [minY, maxY] = rangoY
+  const pasoX = (maxX - minX) / (resolucion - 1)
+  const pasoY = (maxY - minY) / (resolucion - 1)
 
-  const ejeX = Array.from({ length: resolucion }, (_, i) => min + i * paso)
-  const ejeY = Array.from({ length: resolucion }, (_, i) => min + i * paso)
+  const ejeX = Array.from({ length: resolucion }, (_, i) => minX + i * pasoX)
+  const ejeY = Array.from({ length: resolucion }, (_, i) => minY + i * pasoY)
   const Z = []
 
   for (let i = 0; i < resolucion; i++) {
@@ -157,4 +173,23 @@ export const generarSuperficie = (
   }
 
   return { ejeX, ejeY, Z, varX, varY }
+}
+
+// ------------------------------------------------------------
+// 8. CURVA 2D (una sola variable independiente)
+// ------------------------------------------------------------
+export const generarCurva2D = (
+  expresion, varX, variablesFijas = {}, rangoX = [-1.5, 1.5], resolucion = 100
+) => {
+  const ast = parsearExpresion(expresion)
+  const [minX, maxX] = rangoX
+  const paso = (maxX - minX) / (resolucion - 1)
+
+  const ejeX = Array.from({ length: resolucion }, (_, i) => minX + i * paso)
+  const valores = ejeX.map(x => {
+    const variables = { ...variablesFijas, [varX]: x }
+    return evaluarExpresion(expresion, variables, ast)
+  })
+
+  return { ejeX, valores, varX }
 }

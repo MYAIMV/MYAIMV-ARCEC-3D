@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 
 const SuperficiePreview = () => (
-  <svg viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg" className="w-full max-w-2xl mx-auto">
+  <svg viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg"
+       className="h-full w-auto max-w-full" preserveAspectRatio="xMidYMid meet">
     <defs>
       <linearGradient id="surfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%"   stopColor="#5bc8c0" />
@@ -44,50 +45,47 @@ const LandingPage = () => {
   const navigate = useNavigate()
 
   return (
-    <div className="flex min-h-screen bg-white font-sans">
-      <aside className="w-36 flex-shrink-0 flex flex-col items-center pt-6 gap-4"
+    // h-screen + overflow-hidden en vez de min-h-screen: la pantalla nunca
+    // crece más que el alto visible, todo lo de adentro se ajusta para caber.
+    <div className="flex h-screen overflow-hidden bg-white font-sans">
+      <aside className="w-36 flex-shrink-0 h-screen flex flex-col items-center justify-center pt-4 gap-3"
              style={{ backgroundColor: '#c8d8b0' }}>
         <div className="flex flex-col items-center">
-          <div className="text-xs font-bold text-teal-700 leading-tight text-center">cenidet</div>
-          <div className="text-[9px] text-gray-600 text-center leading-tight">
-            Centro Nacional de Investigación<br/>y Desarrollo Tecnológico
-          </div>
-        </div>
-        <div className="w-20 border-t border-gray-400/50"/>
-        <div className="flex flex-col items-center">
-          <div className="text-xs font-bold text-teal-800 leading-tight text-center">UTEZ</div>
-          <div className="text-[8px] text-gray-600 text-center leading-tight mt-0.5">
-            UNIVERSIDAD TECNOLÓGICA<br/>EMILIANO ZAPATA<br/>DEL ESTADO DE MORELOS
-          </div>
+        {/* Logo + nombre CENIDET */}
+          <img src="/logo-cenidet.png" alt="Logo CENIDET" className="w-18 h-18 object-contain mb-1" />
+        {/* Logo + nombre UTEZ */}
+          <img src="/logo-utez.png" alt="Logo UTEZ" className="w-18 h-18 object-contain mb-1" />
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col" style={{ backgroundColor: '#faf8f5' }}>
-        <header className="flex items-center justify-between px-10 py-5 bg-white border border-gray-200 rounded-xl mx-6 mt-6 shadow-sm">
-          <h1 className="text-5xl font-black text-gray-900 tracking-tight">ARCEC-3D</h1>
+      {/* main: flex-col con overflow-hidden, así el contenido nunca se sale de la pantalla */}
+      <main className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#faf8f5' }}>
+        <header className="flex-shrink-0 flex items-center justify-between px-8 py-3.5 bg-white border border-gray-200 rounded-xl mx-5 mt-4 shadow-sm">
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">ARCEC-3D</h1>
           <button
             onClick={() => navigate('/login')}
-            className="px-6 py-2.5 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90"
+            className="px-5 py-2 rounded-lg text-white font-semibold text-sm transition-opacity hover:opacity-90"
             style={{ backgroundColor: '#7a9bbf' }}
           >
             Iniciar sesion
           </button>
         </header>
 
-        <section className="flex-1 flex flex-col justify-start px-10 pt-10">
-          <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
-            <h2 className="text-3xl font-bold text-gray-900 leading-snug mb-3">
-              Visualización interactiva de superficies<br/>algebraicas tridimensionales
+        {/* flex-1 min-h-0: toma el espacio restante SIN desbordar; el SVG de adentro
+            se encoge automáticamente para caber (h-full en el svg + este contenedor) */}
+        <section className="flex-1 min-h-0 flex flex-col px-8 py-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex-1 min-h-0 flex flex-col">
+            <h2 className="text-xl font-bold text-gray-900 leading-snug mb-1.5">
+              Visualización interactiva de superficies algebraicas tridimensionales
             </h2>
-            <p className="text-gray-500 text-base mb-8">
+            <p className="text-gray-500 text-sm mb-3">
               Tus datos algorítmicos, transformados en geometría interactiva al instante
             </p>
-            <div className="flex justify-center">
+            <div className="flex-1 min-h-0 flex items-center justify-center">
               <SuperficiePreview />
             </div>
           </div>
         </section>
-        <div className="pb-8"/>
       </main>
     </div>
   )

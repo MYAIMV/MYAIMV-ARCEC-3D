@@ -18,36 +18,33 @@ const Layout = ({ children, subtitulo }) => {
     navigate('/login')
   }
 
+  const claseBoton = () => `
+    w-full text-center text-sm font-semibold text-gray-800
+    rounded-lg py-2 px-2 transition-all whitespace-pre-line hover:bg-white/40
+  `
+
   return (
-    <div className="flex min-h-screen font-sans" style={{ backgroundColor: '#faf8f5' }}>
+    <div className="flex h-screen overflow-hidden font-sans" style={{ backgroundColor: '#faf8f5' }}>
 
       <aside className="w-36 flex-shrink-0 flex flex-col items-center pt-6 pb-6"
              style={{ backgroundColor: '#c8d8b0' }}>
+        {/* Logo + nombre CENIDET */}
+          <img src="/logo-cenidet.png" alt="Logo CENIDET" className="w-18 h-18 object-contain mb-1" />
+        {/* Logo + nombre UTEZ */}
+          <img src="/logo-utez.png" alt="Logo UTEZ" className="w-18 h-18 object-contain mb-1" />
 
-        <div className="flex flex-col items-center mb-3">
-          <span className="text-xs font-bold text-teal-700 leading-tight text-center">cenidet</span>
-          <span className="text-[8px] text-gray-600 text-center leading-tight">
-            Centro Nacional de Investigación<br/>y Desarrollo Tecnológico
-          </span>
-        </div>
-        <div className="w-20 border-t border-gray-400/50 mb-3"/>
-        <div className="flex flex-col items-center mb-8">
-          <span className="text-xs font-bold text-teal-800 leading-tight text-center">UTEZ</span>
-          <span className="text-[8px] text-gray-600 text-center leading-tight mt-0.5">
-            UNIVERSIDAD TECNOLÓGICA<br/>EMILIANO ZAPATA<br/>DEL ESTADO DE MORELOS
-          </span>
-        </div>
 
-        <nav className="flex flex-col items-center gap-3 w-full px-4 flex-1">
+        {/* flex-1 + justify-center: empuja los botones hacia el espacio restante y los
+            centra verticalmente ahí, en vez de quedar pegados justo debajo de los logos */}
+        <div className="flex-1 flex flex-col justify-center w-full">
+          <nav className="flex flex-col items-center gap-3 w-full px-4">
           {NAV_ITEMS.map(({ label, path }) => {
             const activo = location.pathname === path
             return (
               <button
                 key={path}
                 onClick={() => navigate(path)}
-                className="w-full text-center text-sm font-semibold text-gray-800
-                           rounded-lg py-2 px-2 transition-all whitespace-pre-line
-                           hover:bg-white/40"
+                className={claseBoton()}
                 style={{
                   border: activo ? '2px solid #4a6741' : '2px solid #a0b890',
                   backgroundColor: activo ? 'rgba(255,255,255,0.35)' : 'transparent',
@@ -57,19 +54,19 @@ const Layout = ({ children, subtitulo }) => {
               </button>
             )
           })}
-        </nav>
 
-        <button
-          onClick={handleLogout}
-          className="w-full mx-4 text-center text-sm font-semibold text-gray-800
-                     rounded-lg py-2 px-2 mt-4 hover:bg-white/40 transition-all"
-          style={{ border: '2px solid #a0b890' }}
-        >
-          Cerrar sesión
-        </button>
+          <button
+            onClick={handleLogout}
+            className={claseBoton()}
+            style={{ border: '2px solid #a0b890' }}
+          >
+            Cerrar sesión
+          </button>
+        </nav>
+        </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         <header className="px-8 pt-6 pb-2">
           <h1 className="text-4xl font-black text-gray-900 tracking-tight leading-none">
             ARCEC-3D
