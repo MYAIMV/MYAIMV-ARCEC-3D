@@ -1,7 +1,12 @@
 import axios from 'axios'
 
+// En desarrollo (npm run dev), el frontend y el backend corren en puertos distintos,
+// así que se necesita la URL completa. En producción (ya compilado y servido por
+// Express), ambos viven en el mismo origen, así que basta con la ruta relativa "/api".
+const baseURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api')
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  baseURL,
   headers: { 'Content-Type': 'application/json' }
 })
 
