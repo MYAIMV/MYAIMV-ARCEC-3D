@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-// Modal fiel al prototipo (página 4): nombre del archivo + formato (PDF/JPEG)
+// Modal fiel al prototipo (página 4): nombre del archivo + formato
 const ModalDescargar = ({ abierto, onCerrar, onConfirmar, previewImg }) => {
   const [nombre, setNombre]   = useState('grafica_arcec3d')
   const [formato, setFormato] = useState('')
@@ -48,6 +48,8 @@ const ModalDescargar = ({ abierto, onCerrar, onConfirmar, previewImg }) => {
                            focus:outline-none focus:border-gray-500"
               >
                 <option value="">Selecciona la opcion</option>
+                <option value="PNG">PNG</option>
+                <option value="SVG">SVG</option>
                 <option value="PDF">PDF</option>
                 <option value="JPEG">JPEG</option>
               </select>

@@ -59,7 +59,7 @@ export const useThreeJS = (canvasRef) => {
     camera.position.set(3, 3, 3)
     cameraRef.current = camera
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true })
+   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true })
     renderer.setSize(w, h)
     renderer.setPixelRatio(window.devicePixelRatio)
     container.appendChild(renderer.domElement)
@@ -115,11 +115,16 @@ export const useThreeJS = (canvasRef) => {
     const grupo = new THREE.Group()
     const { min, max } = bbox
 
-    const cajaGeo = new THREE.BoxGeometry(max.x - min.x, max.y - min.y, max.z - min.z)
-    const cajaEdges = new THREE.EdgesGeometry(cajaGeo)
-    const caja = new THREE.LineSegments(cajaEdges, new THREE.LineBasicMaterial({ color: 0x999999, opacity: 0.5, transparent: true }))
-    caja.position.set((min.x + max.x) / 2, (min.y + max.y) / 2, (min.z + max.z) / 2)
-    grupo.add(caja)
+    // las coordenadas y las líneas de los ejes, sin marco alrededor de la superficie.
+    const matEje = new THREE.LineBasicMaterial({ color: 0x888888 })
+    const crearLinea = (desde, hasta) => {
+      const geo = new THREE.BufferGeometry().setFromPoints([desde, hasta])
+      return new THREE.Line(geo, matEje)
+    }
+    const origen = new THREE.Vector3(min.x, min.y, min.z)
+    grupo.add(crearLinea(origen, new THREE.Vector3(max.x, min.y, min.z)))
+    grupo.add(crearLinea(origen, new THREE.Vector3(min.x, min.y, max.z)))
+    grupo.add(crearLinea(origen, new THREE.Vector3(min.x, max.y, min.z)))
 
     const tamanoGrid = Math.max(max.x - min.x, max.z - min.z) || 1
     const grid = new THREE.GridHelper(tamanoGrid, NUM_MARCAS * 2, 0xcfcfcf, 0xe8e8e8)
@@ -347,8 +352,84 @@ export const useThreeJS = (canvasRef) => {
     return el ? { width: el.width, height: el.height } : { width: 800, height: 600 }
   }, [])
 
-  return {
-    renderizarSuperficies, resetCamara, capturarImagen, obtenerDimensionesCanvas,
+  // Captura la escena INCLUYENDO los números y nombres de los ejes.
+  // Los rótulos se dibujan como HTML encima del canvas (CSS2DRenderer), por eso no
+  // aparecen en una captura normal: hay que proyectar su posición 3D a coordenadas
+  // de pantalla y escribirlos manualmente sobre la imagen final.
+  const capturarImagenCompleta = useCallback((transparente = false) => {
+    const renderer = rendererRef.current
+    const camera = cameraRef.current
+    const grupoEjes = ejesRef.current
+    if (!renderer || !camera) return null
+
+    const el = renderer.domElement
+    const ancho = el.clientWidth
+    const alto = el.clientHeight
+    // Si el canvas está oculto (caso de las gráficas 2D) su tamaño es 0: no capturar.
+    if (!ancho || !alto || !el.width || !el.height) return null
+
+    const escala = 2
+    const canvas = document.createElement('canvas')
+    canvas.width = ancho * escala
+    canvas.height = alto * escala
+    const ctx = canvas.getContext('2d')
+
+    if (!transparente) {
+      ctx.fillStyle = '#f5f5f0'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+    }
+
+ // El color de fondo vive en la escena, así que queda "quemado" dentro del canvas.
+    // Para exportar en transparente hay que quitarlo, re-renderizar, capturar, y
+    // devolverlo a su valor original para que la pantalla no cambie.
+    const scene = sceneRef.current
+    const fondoOriginal = scene ? scene.background : null
+    try {
+      if (transparente && scene) {
+        scene.background = null
+        renderer.render(scene, camera)
+      }
+      ctx.drawImage(el, 0, 0, canvas.width, canvas.height)
+    } catch {
+      return null
+    } finally {
+      if (transparente && scene) {
+        scene.background = fondoOriginal
+        renderer.render(scene, camera)
+      }
+    }
+
+    if (grupoEjes) {
+      const pos = new THREE.Vector3()
+      grupoEjes.traverse(obj => {
+        if (!obj.isCSS2DObject || !obj.element) return
+        obj.getWorldPosition(pos)
+        pos.project(camera)
+        if (pos.z > 1) return
+        const x = (pos.x * 0.5 + 0.5) * canvas.width
+        const y = (-pos.y * 0.5 + 0.5) * canvas.height
+
+        const texto = obj.element.textContent
+        const negrita = obj.element.style.fontWeight === '700'
+        ctx.font = `${negrita ? 'bold ' : ''}${11 * escala}px system-ui, sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+
+        if (negrita) {
+          const w = ctx.measureText(texto).width
+          ctx.fillStyle = 'rgba(255,255,255,0.85)'
+          ctx.fillRect(x - w / 2 - 4 * escala, y - 8 * escala, w + 8 * escala, 16 * escala)
+        }
+        ctx.fillStyle = obj.element.style.color || '#555'
+        ctx.fillText(texto, x, y)
+      })
+    }
+
+    return canvas.toDataURL('image/png')
+  }, [])
+
+return {
+    renderizarSuperficies, resetCamara, capturarImagen, capturarImagenCompleta, obtenerDimensionesCanvas,
     setModoVista, modoVista, girarHorizontal, girarVertical, aplicarZoom
   }
 }

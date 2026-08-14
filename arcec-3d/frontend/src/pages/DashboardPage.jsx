@@ -231,7 +231,7 @@ const ModuloCarga = ({
 const DashboardPage = () => {
   const canvasRef = useRef()
   const location = useLocation()
-  const { renderizarSuperficies, resetCamara, capturarImagen, obtenerDimensionesCanvas, girarHorizontal, girarVertical, aplicarZoom } = useThreeJS(canvasRef)
+  const { renderizarSuperficies, resetCamara, capturarImagen, capturarImagenCompleta, obtenerDimensionesCanvas, girarHorizontal, girarVertical, aplicarZoom } = useThreeJS(canvasRef)
 
   const {
     nombreArchivo, setNombreArchivo,
@@ -460,31 +460,70 @@ const DashboardPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleConfirmarDescargar = useCallback(({ nombre, formato }) => {
-    if (tipoGrafica === '3d') {
+const handleConfirmarDescargar = useCallback(({ nombre, formato }) => {
+    // Helper: dispara la descarga de un dataURL o blob URL
+    const descargar = (url, nombreArchivo) => {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nombreArchivo
+      a.click()
+    }
+
+    // Helper: genera un PDF con la imagen centrada y a escala
+    const generarPDF = (dataURL, ancho, alto) => {
+      const pdf = new jsPDF({ orientation: ancho >= alto ? 'landscape' : 'portrait', unit: 'pt', format: 'letter' })
+      const pageW = pdf.internal.pageSize.getWidth(), pageH = pdf.internal.pageSize.getHeight()
+      const margen = 40, maxW = pageW - margen * 2, maxH = pageH - margen * 2
+      const escala = Math.min(maxW / ancho, maxH / alto)
+      const imgW = ancho * escala, imgH = alto * escala
+      pdf.setFontSize(14)
+      pdf.text('ARCEC-3D — Gráfica exportada', margen, margen - 15)
+      pdf.addImage(dataURL, 'PNG', (pageW - imgW) / 2, (pageH - imgH) / 2, imgW, imgH)
+      pdf.save(`${nombre}.pdf`)
+    }
+
+  if (tipoGrafica === '3d') {
+      const { width, height } = obtenerDimensionesCanvas()
+
       if (formato === 'JPEG') {
-        const img = capturarImagen('jpeg')
+        const img = capturarImagenCompleta(false)
         if (!img) return
-        const a = document.createElement('a'); a.href = img; a.download = `${nombre}.jpg`; a.click()
+        descargar(img, `${nombre}.jpg`)
+      } else if (formato === 'PNG') {
+        const img = capturarImagenCompleta(true)
+        if (!img) return
+        descargar(img, `${nombre}.png`)
+      } else if (formato === 'SVG') {
+        const img = capturarImagenCompleta(true)
+        if (!img) return
+        const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+                       `<image href="${img}" width="${width}" height="${height}"/></svg>`
+        const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        descargar(url, `${nombre}.svg`)
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
       } else {
-        const img = capturarImagen('png')
+        const img = capturarImagenCompleta(false)
         if (!img) return
-        const { width, height } = obtenerDimensionesCanvas()
-        const pdf = new jsPDF({ orientation: width >= height ? 'landscape' : 'portrait', unit: 'pt', format: 'letter' })
-        const pageW = pdf.internal.pageSize.getWidth(), pageH = pdf.internal.pageSize.getHeight()
-        const margen = 40, maxW = pageW - margen * 2, maxH = pageH - margen * 2
-        const escala = Math.min(maxW / width, maxH / height)
-        const imgW = width * escala, imgH = height * escala
-        pdf.setFontSize(14)
-        pdf.text('ARCEC-3D — Gráfica exportada', margen, margen - 15)
-        pdf.addImage(img, 'PNG', (pageW - imgW) / 2, (pageH - imgH) / 2, imgW, imgH)
-        pdf.save(`${nombre}.pdf`)
+        generarPDF(img, width, height)
       }
     } else {
       const svg = document.querySelector('#grafica-2d-svg')
       if (!svg) return
       const serializer = new XMLSerializer()
       const svgStr = serializer.serializeToString(svg)
+
+      // En 2D la gráfica ya ES un SVG: se exporta vectorial puro, sin rasterizar.
+      if (formato === 'SVG') {
+        const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
+        const url = URL.createObjectURL(blob)
+        descargar(url, `${nombre}.svg`)
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        setModalDescargar(false)
+        return
+      }
+
+      // Para PNG / JPEG / PDF se rasteriza el SVG sobre un canvas
       const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' })
       const url = URL.createObjectURL(svgBlob)
       const img2 = new Image()
@@ -495,18 +534,13 @@ const DashboardPage = () => {
         ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height)
         ctx.drawImage(img2, 0, 0, canvas.width, canvas.height)
         URL.revokeObjectURL(url)
+
         if (formato === 'JPEG') {
-          const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg'); a.download = `${nombre}.jpg`; a.click()
+          descargar(canvas.toDataURL('image/jpeg'), `${nombre}.jpg`)
+        } else if (formato === 'PNG') {
+          descargar(canvas.toDataURL('image/png'), `${nombre}.png`)
         } else {
-          const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' })
-          const pageW = pdf.internal.pageSize.getWidth(), pageH = pdf.internal.pageSize.getHeight()
-          const margen = 40, maxW = pageW - margen * 2, maxH = pageH - margen * 2
-          const escala = Math.min(maxW / canvas.width, maxH / canvas.height)
-          const imgW = canvas.width * escala, imgH = canvas.height * escala
-          pdf.setFontSize(14)
-          pdf.text('ARCEC-3D — Gráfica exportada', margen, margen - 15)
-          pdf.addImage(canvas.toDataURL('image/png'), 'PNG', (pageW - imgW) / 2, (pageH - imgH) / 2, imgW, imgH)
-          pdf.save(`${nombre}.pdf`)
+          generarPDF(canvas.toDataURL('image/png'), canvas.width, canvas.height)
         }
       }
       img2.src = url
